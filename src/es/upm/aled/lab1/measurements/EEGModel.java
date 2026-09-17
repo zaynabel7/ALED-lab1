@@ -131,8 +131,25 @@ public class EEGModel {
 	 */
 	public void saveFile(String fileName) throws IOException {
 		// TODO
+		EEGModel eeg = new EEGModel();
+		Measurement[] array = getMeasurements();
 		
-	}
+		for(int i = 0; i < array.length; i++) {
+			System.out.print(array[i] + " ");
+		}
+		
+		File f = new File(fileName);
+		FileOutputStream fos = new FileOutputStream(f);
+		PrintStream guardado = new PrintStream(fos);
+		guardado.close();
+			
+		}
+	//recorro la lista y extraigo una medida
+	//extraer los valores de la medida
+	//crear la linea de texto
+	//imprimir por pantalla la linea
+		
+	
 
 	/**
 	 * Plots the data of the EEGModel using the classes in the es.upm.aled.lab1.gui
@@ -257,5 +274,7 @@ public class EEGModel {
 			// TODO
 			
 		}
+		
+		
 	}
 }
