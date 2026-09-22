@@ -7,6 +7,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.Array;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,9 +27,8 @@ import es.upm.aled.lab1.gui.EEG_GUI;
  */
 public class EEGModel {
 
-	protected List<Measurement> measurements = new ArrayList<Measurement>();
+	protected List<Measurement> measurements = new ArrayList<Measurement>();  //esta lista esta formada por objetos tipo Measurement, en cada posicion de la lista hay un measurement cuyo atributo es un array de floats
 	protected EEG_GUI gui;
-
 	/**
 	 * Builds an empty EEGModel.
 	 */
@@ -40,7 +41,7 @@ public class EEGModel {
 	 * @param file Source file containing a measurement session in the OpenBCI
 	 *             format.
 	 */
-	public EEGModel(String file) {
+	public EEGModel(String file) {    //cuando se hace el loadFile se añaden las medidas 
 		try {
 			loadFile(file);
 		} catch (IOException e) {
@@ -55,9 +56,9 @@ public class EEGModel {
 	 * 
 	 * @param measurements The Measurements that make up the EEGModel.
 	 */
-	public EEGModel(Measurement[] measurements) {
+	public EEGModel(Measurement[] measurements) {  //constructor de EEGModel recibe array con objetos tipo Measurements como parametro
 		// TODO
-		
+		this.measurements = Arrays.asList(measurements);  //para obtener una lista a partir de un array.
 	}
 
 	/**
@@ -91,7 +92,7 @@ public class EEGModel {
 	public EEGModel filter(Filter filter) {
 		// TODO
 		
-		return null;
+		return filter.applyFilter(this);       // filter de EEGModel que permite aplicar un filtro sobre sí mismo.
 	}
 
 	/**
@@ -104,21 +105,29 @@ public class EEGModel {
 	 * @param fileName Path to the OpenBCI file.
 	 * @throws IOException Thrown if the file can't be read.
 	 */
-	public void loadFile(String fileName) throws IOException {
-		File f = new File(fileName);
-		FileInputStream fis = new FileInputStream(f);
-		DataInput fid = new DataInputStream(fis);
-		String line;
-		while ((line = fid.readLine()) != null) {
+	public void loadFile(String fileName) throws IOException { //no devuelve nada y puede lanzar una excepcion por error de lectura
+		
+		File f = new File(fileName); //se crea el objeto file, que representa el archivo (no lo estamos leyendo)
+		
+		FileInputStream fis = new FileInputStream(f);  //Aquí sí estamos abriendo el archivo para poder leer sus datos, FileInputStream es como un canal de entrada de datos:
+		DataInput fid = new DataInputStream(fis);      //Aquí se crea otro objeto que nos permite leer los datos del archivo.
+		String line;                                   //guardar una línea del archivo cada vez.
+		while ((line = fid.readLine()) != null) {      //mientras que la linea que se lea no sea nula, el while va a ser true, cuando readLine llega al final del archivo devuelve null y se sale del bucle
 			// Removes the comments
-			if (line.startsWith("%"))
-				continue;
+			if (line.startsWith("%"))                   //comprueba si empieza por %
+				continue;                               //ontinue significa deja de ejecutar esta vuelta del while y pasa directamente a la siguiente línea.
+			
+			
 			// Separates by commas and extracts the channels from each measurement
-			String[] columns = line.split(",");
-			float[] channels = new float[columns.length - 1];
-			for (int i = 1; i < columns.length; i++)
-				channels[i - 1] = Float.parseFloat(columns[i]);
-			addMeasurement(new Measurement(channels));
+			
+			String[] columns = line.split(",");      //split(",") divide el texto cada vez que encuentra una coma. Ejemplo: line = "1,2.5,3.7,4.1", columns[0] = "1", columns[1] = "2.5, columns[2] = "3.7", columns[3] = "4.1"
+			float[] channels = new float[columns.length - 1];       //i=0 va el numero de la muestra, por tanto si tengo 10 columnas, 9 son canales
+			for (int i = 1; i < columns.length; i++)                //ignoro la posicion i=0 de columns 
+				channels[i - 1] = Float.parseFloat(columns[i]);     //dentro de  columns[i] hay un string pero yo necesito que en channels[i-1] haya un float, lo que hace Float.parseFloat es convertir un string en un float p.ej Float.parseFloar("2.5") -> 2.5
+			
+			//Despues de extraer el valor dentro de cada canal, entonces creo una nueva medida (objeto measurement) y le paso el array de canales
+			Measurement m = new Measurement(channels);
+			addMeasurement(m);              //Measurement(float[] channels), añade el objeto measurement  a la lista measurement, measurement tiene como parametro un array de canales (cada canal tiene su valor) 
 		}
 		fis.close();
 	}
@@ -131,24 +140,39 @@ public class EEGModel {
 	 */
 	public void saveFile(String fileName) throws IOException {
 		// TODO
-		EEGModel eeg = new EEGModel();
-		Measurement[] array = getMeasurements();
-		
-		for(int i = 0; i < array.length; i++) {
-			System.out.print(array[i] + " ");
-		}
-		
+	
 		File f = new File(fileName);
 		FileOutputStream fos = new FileOutputStream(f);
-		PrintStream guardado = new PrintStream(fos);
-		guardado.close();
-			
-		}
-	//recorro la lista y extraigo una medida
-	//extraer los valores de la medida
-	//crear la linea de texto
-	//imprimir por pantalla la linea
+		PrintStream ps = new PrintStream(fos);
 		
+		int index = 0;
+		for(Measurement m : measurements) {    //recorro la lista (tipo nombre : lista), para cada measurement m de la lista measurements
+			String line = index + ", ";
+			for(int i = 0; i < m.numChannels(); i++) {  //cada measurement tiene su array de floats y necesito imprimir cada valor con el formato   x, xxx, xxx, xxx
+				
+				float valor = m.getChannel(i);          //valor del canal i
+				line = line + valor;        // line = index + ", " + valor
+				
+				if(i < m.numChannels()-1) {  //para no poner coma en la ultima posicion, solo entre numeros
+					line = line + ", ";
+				}
+			}
+			ps.println(line);
+			index++; 
+		}
+		
+		ps.close();
+		}
+	 //Ejemplo [ (4,2,3,5), (7,6,8,1), (6, 4, 4, 1), ... ] LISTA
+	//1º for: estoy en measurement 1, index = 0; line = 0   (el index va a representar el numero de muestra
+	//2º for: i = 0, valor = 4, line = 0, 4 -> i = 1, valor = 2, line = 0, 4, 2 -> i = 2, valor = 3, line = 0, 4, 2, 3,  -> i = 3, valor = 5, line = 0, 4, 2, 3, 5 
+	//Cuando i = 3, se sale del 2º bucle for y se imprime la line y se incrementa el indice y asi hasta obtener algo asi (EN CADA VUELTA SE AÑADEN LOS VALORES DE LOS CHANNELS):
+	//   0, 4, 2, 3, 5
+	//   1, 7, 6, 8, 1
+	//   2, 6, 4, 4, 1
+	//  ...
+	//se vuelve a entrar en el 1º bucle para pasar a measurement 2, ahora line = index + ", " con index = 1, y se vuelve a hacer el proceso de antes para la measurement 2
+	
 	
 
 	/**
@@ -264,17 +288,39 @@ public class EEGModel {
 
 	public static void main(String[] args) {
 		if (args.length > 0) {
-			EEGModel eeg = new EEGModel(args[0]);
+			
+			EEGModel eeg = new EEGModel(args[0]);  //Recupera las muestras de una sesión de EEG almacenada en un archivo.
 			eeg.plotData();
-			// TODO
-			
+			int[] validChannels = {8,9,10}; //11 canales, escogemos los 3 ultimos (8,9,10)
+			Filter filtroCanal = new FilterExtractChannels(validChannels);
+			int min = 2750;
+			int max = 5750;
+			Filter filtroIntervalo =  new FilterExtractPeriod(min,max);
+			EEGModel eegFiltrado = eeg.filter(filtroIntervalo).filter(filtroCanal);
+			eegFiltrado.plotData();
+			try {
+				eegFiltrado.saveFile("Filtrado.txt");
+			}catch(IOException e) {
+				System.out.println("Error");
+				e.printStackTrace();}
+				
 		} else {
-			EEGModel eeg = new EEGModel();
-			eeg.createSyntheticData(1000);
-			// TODO
 			
+			EEGModel eeg = new EEGModel();      //Crea una nueva sesión de EEG sintética con muestras aleatorias.
+			eeg.createSyntheticData(1000);
+		
+			try {
+				eeg.saveFile("Synthetic.txt");
+				System.out.println("Se ha guardado el archivo");
+				System.out.println(Path.of("Synthetic.txt").toAbsolutePath());
+			} catch (IOException e) {
+				System.out.println("Error");
+				e.printStackTrace();
+			}
 		}
 		
+//		float[] miArray = {1f, 2.4f,4f,6f};
+//		Measurement m = new Measurement(miArray);
 		
-	}
-}
+	
+}}
