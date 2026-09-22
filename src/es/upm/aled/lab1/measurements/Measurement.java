@@ -7,7 +7,7 @@ package es.upm.aled.lab1.measurements;
  * 
  * @author mmiguel, rgarciacarmona
  */
-public class Measurement {
+public class Measurement {       //measurement = muestra con nº canales, cada canal con un valor
 
 	private float[] channels;
 

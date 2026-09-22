@@ -34,13 +34,14 @@ public class FilterExtractPeriod implements Filter {
 	public EEGModel applyFilter(EEGModel eeg) {
 		
 		Measurement[] muestras = eeg.getMeasurements();
-		Measurement[] muestrasFiltradas = new Measurement[muestras.length];
-		
-		for(int i = 0; i < muestras.length; i++) {
-			int indice = 0;
-			if (i >= min && i <= max) {
+		Measurement[] muestrasFiltradas = new Measurement[max - min];
+		int indice = 0;//si lo defino dentro cada vez que haga el bucle el indice vale 0 y no se guarda el incremento
+		for(int i = min; i < muestrasFiltradas.length; i++) {
+				if (i >= min && i <= max) {
 				muestrasFiltradas[indice] = muestras[i];
-				indice ++;
+				if(indice < muestrasFiltradas.length) {
+					indice++;
+				}
 			}
 		}
 		

@@ -111,16 +111,17 @@ public class EEGModel {
 		
 		FileInputStream fis = new FileInputStream(f);  //Aquí sí estamos abriendo el archivo para poder leer sus datos, FileInputStream es como un canal de entrada de datos:
 		DataInput fid = new DataInputStream(fis);      //Aquí se crea otro objeto que nos permite leer los datos del archivo.
+	
 		String line;                                   //guardar una línea del archivo cada vez.
+		
 		while ((line = fid.readLine()) != null) {      //mientras que la linea que se lea no sea nula, el while va a ser true, cuando readLine llega al final del archivo devuelve null y se sale del bucle
 			// Removes the comments
-			if (line.startsWith("%"))                   //comprueba si empieza por %
-				continue;                               //ontinue significa deja de ejecutar esta vuelta del while y pasa directamente a la siguiente línea.
-			
+			if (line.startsWith("%")) {//comprueba si empieza por %
+				continue;  }                             //ontinue significa deja de ejecutar esta vuelta del while y pasa directamente a la siguiente línea.
 			
 			// Separates by commas and extracts the channels from each measurement
 			
-			String[] columns = line.split(",");      //split(",") divide el texto cada vez que encuentra una coma. Ejemplo: line = "1,2.5,3.7,4.1", columns[0] = "1", columns[1] = "2.5, columns[2] = "3.7", columns[3] = "4.1"
+			String[] columns = line.split(", ");      //split(",") divide el texto cada vez que encuentra una coma. Ejemplo: line = "1,2.5,3.7,4.1", columns[0] = "1", columns[1] = "2.5, columns[2] = "3.7", columns[3] = "4.1"
 			float[] channels = new float[columns.length - 1];       //i=0 va el numero de la muestra, por tanto si tengo 10 columnas, 9 son canales
 			for (int i = 1; i < columns.length; i++)                //ignoro la posicion i=0 de columns 
 				channels[i - 1] = Float.parseFloat(columns[i]);     //dentro de  columns[i] hay un string pero yo necesito que en channels[i-1] haya un float, lo que hace Float.parseFloat es convertir un string en un float p.ej Float.parseFloar("2.5") -> 2.5
@@ -141,9 +142,9 @@ public class EEGModel {
 	public void saveFile(String fileName) throws IOException {
 		// TODO
 	
-		File f = new File(fileName);
-		FileOutputStream fos = new FileOutputStream(f);
-		PrintStream ps = new PrintStream(fos);
+		File f = new File(fileName);  //creo un archivo con el nombre que me pasan como parametro
+		FileOutputStream fos = new FileOutputStream(f);  //crear un stream de salida hacia un archivo
+		PrintStream ps = new PrintStream(fos);   // escribir cadenas de caracteres a un stream de salida mediante los métodos print o println.
 		
 		int index = 0;
 		for(Measurement m : measurements) {    //recorro la lista (tipo nombre : lista), para cada measurement m de la lista measurements
@@ -291,15 +292,24 @@ public class EEGModel {
 			
 			EEGModel eeg = new EEGModel(args[0]);  //Recupera las muestras de una sesión de EEG almacenada en un archivo.
 			eeg.plotData();
-			int[] validChannels = {8,9,10}; //11 canales, escogemos los 3 ultimos (8,9,10)
-			Filter filtroCanal = new FilterExtractChannels(validChannels);
-			int min = 2750;
-			int max = 5750;
-			Filter filtroIntervalo =  new FilterExtractPeriod(min,max);
-			EEGModel eegFiltrado = eeg.filter(filtroIntervalo).filter(filtroCanal);
-			eegFiltrado.plotData();
+			int[] validChannels = {8,9,10}; 
+			
+			eeg =eeg.filter(new FilteredExtractChannelsMiForma(validChannels));
+			eeg.plotData();
+			eeg = eeg.filter(new FilterExtractPeriod(2750,5750));
+			
+			
+			
+			
+			//11 canales, escogemos los 3 ultimos (8,9,10)
+//			Filter filtroCanal = new FilterExtractChannelsCOPIA(validChannels);
+//			int min = 2750;
+//			int max = 5750;
+//			Filter filtroIntervalo =  new FilterExtractPeriod(min,max);
+//			EEGModel eegFiltrado = eeg.filter(filtroIntervalo).filter(filtroCanal);
+//			eegFiltrado.plotData();
 			try {
-				eegFiltrado.saveFile("Filtrado.txt");
+				eeg.saveFile("Filtrado.txt");
 			}catch(IOException e) {
 				System.out.println("Error");
 				e.printStackTrace();}
